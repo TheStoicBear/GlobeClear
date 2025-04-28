@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>World Clear Notification</title>
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="overflow-hidden">
+
+  <!-- Notification Container (hidden/off-screen initially) -->
+  <div id="notification"
+       class="fixed inset-x-0 top-0 flex justify-center pointer-events-none
+              transform -translate-y-full transition-transform duration-500 ease-out">
+    <div class="bg-blue-600 text-white px-6 py-4 rounded-b-lg shadow-lg w-full max-w-md mx-auto">
+      <div class="flex items-center justify-between">
+        <h1 id="notif-title" class="text-xl font-semibold">Title</h1>
+        <span id="notif-countdown" class="text-lg font-mono">30s</span>
+      </div>
+      <p id="notif-message" class="mt-2 text-sm">Message</p>
+    </div>
+  </div>
+
+  <script>
+    let countdownInterval = null;
+
+    window.addEventListener('message', (event) => {
+      const d = event.data;
+      if (d.action === 'startCountdown') {
+        startInitialCountdown(d);
+      } else if (d.action === 'clearDone') {
+        startFinalCountdown(d);
+      }
+    });
+
+    function slideDown() {
+      const c = document.getElementById('notification');
+      c.classList.remove('-translate-y-full');
+      // re-flow in case it's already visible
+      void c.offsetWidth;
+    }
+
+    function slideUp() {
+      document.getElementById('notification')
+        .classList.add('-translate-y-full');
+    }
+
+    function startInitialCountdown(data) {
+      clearInterval(countdownInterval);
+
+      // Populate
+      document.getElementById('notif-title').innerText   = data.title;
+      document.getElementById('notif-message').innerText = data.message;
+      let remaining = 30;
+      const cnt = document.getElementById('notif-countdown');
+      cnt.innerText = remaining + 's';
+
+      slideDown();
+
+      // tick every second
+      countdownInterval = setInterval(() => {
+        remaining--;
+        cnt.innerText = remaining + 's';
+        if (remaining <= 0) {
+          clearInterval(countdownInterval);
+          // wait for server to send clearDone
+        }
+      }, 1000);
+    }
+
+    function startFinalCountdown(data) {
+      clearInterval(countdownInterval);
+
+      // Populate final text
+      document.getElementById('notif-title').innerText   = data.title;
+      document.getElementById('notif-message').innerText = data.message;
+      let remaining = 3;
+      const cnt = document.getElementById('notif-countdown');
+      cnt.innerText = remaining;
+
+      // we assume it's already slid down
+      slideDown();
+
+      // 3,2,1 then slide up
+      countdownInterval = setInterval(() => {
+        remaining--;
+        cnt.innerText = remaining > 0 ? remaining : '';
+        if (remaining <= 0) {
+          clearInterval(countdownInterval);
+          slideUp();
+        }
+      }, 1000);
+    }
+  </script>
+</body>
+</html>
